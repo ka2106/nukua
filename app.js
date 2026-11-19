@@ -22,19 +22,16 @@ function showFatal(msg, details) {
   const content = document.getElementById('content');
   if (content) {
     content.innerHTML = '';
+    const container = document.createElement('div');
+    container.className = 'container';
     const box = document.createElement('div');
     box.className = 'error';
-    box.style.whiteSpace = 'pre-wrap';
     box.textContent = 'Ошибка: ' + msg + (details ? '\n\n' + details : '');
-    content.appendChild(box);
+    container.appendChild(box);
+    content.appendChild(container);
   }
   const lu = document.getElementById('last-update');
   if (lu) lu.textContent = 'Ошибка';
-}
-function logStage(stage) {
-  console.log('[stage]', stage);
-  const lu = document.getElementById('last-update');
-  if (lu) lu.textContent = 'Загрузка: ' + stage + '…';
 }
 
 // ==================== UTILS ====================
@@ -550,11 +547,13 @@ const TABS = [
 ];
 function buildTabs() {
   const nav = document.getElementById('tabs');
-  if (!nav) throw new Error('#tabs не найден в HTML');
   nav.innerHTML = '';
   TABS.forEach((tab, i) => {
-    const b = el('button', { textContent: tab.title, dataset: { tab: tab.id } });
-    if (i === 0) b.classList.add('active');
+    const b = el('button', {
+      className: 'nav-btn' + (i === 0 ? ' active' : ''),
+      textContent: tab.title,
+      dataset: { tab: tab.id },
+    });
     b.onclick = () => activate(tab.id);
     nav.appendChild(b);
   });
@@ -569,7 +568,9 @@ function activate(id) {
   state.charts = {};
   const content = document.getElementById('content');
   content.innerHTML = '';
-  TABS.find(t => t.id === id).render(content);
+  const container = el('div', { className: 'container' });
+  content.appendChild(container);
+  TABS.find(t => t.id === id).render(container);
 }
 
 // ==================== OVERVIEW ====================
