@@ -68,7 +68,18 @@ const fmtPct   = n => Number(n || 0).toFixed(1) + '%';
 
 function el(tag, props = {}, children = []) {
   const e = document.createElement(tag);
-  Object.assign(e, props);
+  for (const k in props) {
+    const v = props[k];
+    if (k === 'dataset') {
+      if (v) Object.assign(e.dataset, v);
+    } else if (k === 'style' && v && typeof v === 'object') {
+      Object.assign(e.style, v);
+    } else if (k.startsWith('on') && typeof v === 'function') {
+      e.addEventListener(k.slice(2).toLowerCase(), v);
+    } else {
+      e[k] = v;
+    }
+  }
   children.forEach(c => e.appendChild(c));
   return e;
 }
