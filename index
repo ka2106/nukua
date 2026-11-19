@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Дашборд подрядчиков</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>Дашборд подрядчиков</h1>
+  <div id="last-update" class="muted">Загрузка…</div>
+</header>
+<nav id="tabs"></nav>
+<main id="content"></main>
+<script src="app.js"></script>
+</body>
+</html>
