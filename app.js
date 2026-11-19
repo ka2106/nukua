@@ -12,9 +12,30 @@ const state = {
   charts: {},
   sort: {},
   currentTab: 'overview',
-  paymentLinkMode: 'none', // 'idA' | 'contractor' | 'none'
+  paymentLinkMode: 'none',
   contractById: new Map(),
 };
+
+// ==================== ВИДИМЫЕ ОШИБКИ ====================
+function showFatal(msg, details) {
+  console.error('[FATAL]', msg, details || '');
+  const content = document.getElementById('content');
+  if (content) {
+    content.innerHTML = '';
+    const box = document.createElement('div');
+    box.className = 'error';
+    box.style.whiteSpace = 'pre-wrap';
+    box.textContent = 'Ошибка: ' + msg + (details ? '\n\n' + details : '');
+    content.appendChild(box);
+  }
+  const lu = document.getElementById('last-update');
+  if (lu) lu.textContent = 'Ошибка';
+}
+function logStage(stage) {
+  console.log('[stage]', stage);
+  const lu = document.getElementById('last-update');
+  if (lu) lu.textContent = 'Загрузка: ' + stage + '…';
+}
 
 // ==================== UTILS ====================
 function toNum(v) {
@@ -65,10 +86,23 @@ function csvUrl(sheet) {
          `/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet)}`;
 }
 async function loadSheet(sheet) {
-  const res = await fetch(csvUrl(sheet), { cache: 'no-store' });
-  if (!res.ok) throw new Error(`HTTP ${res.status}: ${sheet}`);
+  const url = csvUrl(sheet);
+  console.log('→ fetch', url);
+  let res;
+  try {
+    res = await fetch(url, { cache: 'no-store' });
+  } catch (e) {
+    throw new Error(`Сеть не отвечает для листа "${sheet}": ${e.message}`);
+  }
+  if (!res.ok) throw new Error(`HTTP ${res.status} для листа "${sheet}" (${url})`);
   const text = await res.text();
+  if (/^\s*<\s*html/i.test(text) || /accounts\.google\.com/.test(text)) {
+    throw new Error(`Лист "${sheet}": Google вернул HTML вместо CSV.\n` +
+                    `Скорее всего таблица не расшарена «Всем, у кого есть ссылка → Читатель».\n` +
+                    `Проверь: ${url}`);
+  }
   const rows = Papa.parse(text, { header: true, skipEmptyLines: true }).data;
+  if (!rows.length) throw new Error(`Лист "${sheet}": 0 строк данных`);
   return rows.map(r => {
     const o = {};
     for (const k in r) o[String(k).trim()] = r[k];
@@ -76,6 +110,7 @@ async function loadSheet(sheet) {
   });
 }
 async function loadAll() {
+  logStage('загрузка листов');
   const [contracts, ks2, payments,
          sContractors, sObjects, sWorks, sMonths, sStatuses] = await Promise.all([
     loadSheet('raw_договоры'), loadSheet('raw_КС2'), loadSheet('raw_оплаты'),
@@ -87,15 +122,17 @@ async function loadAll() {
     contractors: sContractors, objects: sObjects, works: sWorks,
     months: sMonths, statuses: sStatuses,
   };
-  // Индекс договоров по id A для карточки договора
   contracts.forEach(c => {
     const id = String(c['id A'] || '').trim();
     if (id) state.contractById.set(id, c);
   });
   detectPaymentLinkMode();
+  console.log('✓ данные загружены:', {
+    договоры: contracts.length, КС2: ks2.length, оплаты: payments.length,
+  });
 }
 
-// ==================== СВЯЗЬ ОПЛАТ С ДОГОВОРОМ ====================
+// ==================== СВЯЗЬ ОПЛАТ ====================
 function getPaymentContractId(p) {
   return String(p['id A'] || p['id договора'] || p['договор'] || p['ID'] || '').trim();
 }
@@ -117,7 +154,7 @@ function detectPaymentLinkMode() {
   state.paymentLinkMode = 'none';
 }
 
-// ==================== АГРЕГАЦИЯ (порт из aggregator.txt) ====================
+// ==================== АГРЕГАЦИЯ ====================
 function aggByContractor(contracts, ks2) {
   const map = new Map();
   const init = name => ({
@@ -502,6 +539,8 @@ const TABS = [
 ];
 function buildTabs() {
   const nav = document.getElementById('tabs');
+  if (!nav) throw new Error('#tabs не найден в HTML');
+  nav.innerHTML = '';
   TABS.forEach((tab, i) => {
     const b = el('button', { textContent: tab.title, dataset: { tab: tab.id } });
     if (i === 0) b.classList.add('active');
@@ -513,7 +552,9 @@ function activate(id) {
   state.currentTab = id;
   document.querySelectorAll('#tabs button')
     .forEach(b => b.classList.toggle('active', b.dataset.tab === id));
-  Object.values(state.charts).forEach(c => c.destroy());
+  Object.values(state.charts).forEach(c => {
+    try { c.destroy(); } catch (e) {}
+  });
   state.charts = {};
   const content = document.getElementById('content');
   content.innerHTML = '';
@@ -1005,9 +1046,8 @@ function showContractDetail(contractId) {
   });
 }
 
-// ==================== MODAL (со стеком) ====================
+// ==================== MODAL ====================
 const modalStack = [];
-
 function openModal(title, buildFn) {
   modalStack.push({ title, buildFn });
   renderModal();
@@ -1022,24 +1062,22 @@ function closeModal() {
 }
 function renderModal() {
   const overlay = document.getElementById('modal');
-  // cleanup modal charts
   Object.keys(state.charts).forEach(k => {
-    if (k.startsWith('ch-modal')) { state.charts[k].destroy(); delete state.charts[k]; }
+    if (k.startsWith('ch-modal')) {
+      try { state.charts[k].destroy(); } catch (e) {}
+      delete state.charts[k];
+    }
   });
-
   if (!modalStack.length) {
     overlay.classList.remove('open');
     overlay.innerHTML = '';
     return;
   }
   const { title, buildFn } = modalStack[modalStack.length - 1];
-
   overlay.innerHTML = '';
   overlay.classList.add('open');
-
   const box = el('div', { className: 'modal-box' });
   const header = el('div', { className: 'modal-header' });
-
   if (modalStack.length > 1) {
     const back = el('button', { className: 'modal-back', textContent: '← Назад' });
     back.onclick = backModal;
@@ -1049,13 +1087,11 @@ function renderModal() {
   const closeBtn = el('button', { className: 'modal-close', textContent: '×' });
   closeBtn.onclick = closeModal;
   header.appendChild(closeBtn);
-
   box.appendChild(header);
   const body = el('div', { className: 'modal-body' });
   buildFn(body);
   box.appendChild(body);
   overlay.appendChild(box);
-
   overlay.onclick = e => { if (e.target === overlay) closeModal(); };
 }
 
@@ -1075,20 +1111,31 @@ function attachFilterListeners() {
 }
 
 (async function init() {
-  buildTabs();
   try {
+    if (typeof Chart === 'undefined') throw new Error('Chart.js не загрузился (CDN заблокирован?)');
+    if (typeof Papa === 'undefined')  throw new Error('PapaParse не загрузился (CDN заблокирован?)');
+    if (!CONFIG.SPREADSHEET_ID || CONFIG.SPREADSHEET_ID === 'PASTE_DEST_SPREADSHEET_ID_HERE') {
+      throw new Error('В app.js не задан SPREADSHEET_ID (впиши ID таблицы-приёмника).');
+    }
+    console.log('SPREADSHEET_ID =', CONFIG.SPREADSHEET_ID);
+
+    buildTabs();
+    logStage('получение данных');
+
     await loadAll();
+    logStage('первичная агрегация');
     populateFilters();
     attachFilterListeners();
     applyFilters();
     validateAgainstServer();
+
+    logStage('отрисовка');
     document.getElementById('last-update').textContent =
       'Данные обновлены: ' + new Date().toLocaleString('ru-RU');
     activate('overview');
+    console.log('✓ ГОТОВО');
   } catch (e) {
-    document.getElementById('content').innerHTML =
-      `<div class="error">Ошибка загрузки: ${e.message}<br>
-       Проверьте SPREADSHEET_ID и что таблица расшарена «всем по ссылке».</div>`;
     console.error(e);
+    showFatal(e.message, e.stack || '');
   }
 })();
