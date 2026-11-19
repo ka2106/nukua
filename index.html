@@ -4,43 +4,55 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Дашборд подрядчиков</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header>
-  <h1>Дашборд подрядчиков</h1>
-  <div id="last-update" class="muted">Загрузка…</div>
-</header>
 
-<div class="filter-bar">
-  <div class="filter-group">
-    <label for="f-contractor">Подрядчик</label>
-    <select id="f-contractor"><option value="">Все</option></select>
+<div class="app">
+  <header>
+    <div class="logo-wrap">
+      <div class="logo-mark">Д</div>
+      <div class="logo-text">Дашборд подрядчиков</div>
+    </div>
+    <div class="header-controls">
+      <div id="last-update" class="header-status">Загрузка…</div>
+      <nav class="nav-tabs" id="tabs"></nav>
+    </div>
+  </header>
+
+  <div class="filter-bar">
+    <div class="filter-group">
+      <label for="f-contractor">Подрядчик</label>
+      <select id="f-contractor"><option value="">Все</option></select>
+    </div>
+    <div class="filter-group">
+      <label for="f-object">Объект</label>
+      <select id="f-object"><option value="">Все</option></select>
+    </div>
+    <div class="filter-group">
+      <label for="f-status">Статус договора</label>
+      <select id="f-status"><option value="">Все</option></select>
+    </div>
+    <div class="filter-group">
+      <label for="f-date-from">КС/оплаты с</label>
+      <input type="date" id="f-date-from">
+    </div>
+    <div class="filter-group">
+      <label for="f-date-to">по</label>
+      <input type="date" id="f-date-to">
+    </div>
+    <button class="btn btn-secondary" id="f-reset">Сбросить</button>
+    <div class="filter-status" id="filter-status"></div>
   </div>
-  <div class="filter-group">
-    <label for="f-object">Объект</label>
-    <select id="f-object"><option value="">Все</option></select>
-  </div>
-  <div class="filter-group">
-    <label for="f-status">Статус договора</label>
-    <select id="f-status"><option value="">Все</option></select>
-  </div>
-  <div class="filter-group">
-    <label for="f-date-from">КС/оплаты с</label>
-    <input type="date" id="f-date-from">
-  </div>
-  <div class="filter-group">
-    <label for="f-date-to">по</label>
-    <input type="date" id="f-date-to">
-  </div>
-  <button class="filter-reset" id="f-reset">Сбросить</button>
-  <div class="filter-status" id="filter-status"></div>
+
+  <main class="main-content" id="content"></main>
 </div>
 
-<nav id="tabs"></nav>
-<main id="content"></main>
 <div id="modal"></div>
 
 <script src="app.js"></script>
