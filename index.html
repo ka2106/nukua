@@ -13,8 +13,36 @@
   <h1>Дашборд подрядчиков</h1>
   <div id="last-update" class="muted">Загрузка…</div>
 </header>
+
+<div class="filter-bar">
+  <div class="filter-group">
+    <label for="f-contractor">Подрядчик</label>
+    <select id="f-contractor"><option value="">Все</option></select>
+  </div>
+  <div class="filter-group">
+    <label for="f-object">Объект</label>
+    <select id="f-object"><option value="">Все</option></select>
+  </div>
+  <div class="filter-group">
+    <label for="f-status">Статус договора</label>
+    <select id="f-status"><option value="">Все</option></select>
+  </div>
+  <div class="filter-group">
+    <label for="f-date-from">Дата КС с</label>
+    <input type="date" id="f-date-from">
+  </div>
+  <div class="filter-group">
+    <label for="f-date-to">по</label>
+    <input type="date" id="f-date-to">
+  </div>
+  <button class="filter-reset" id="f-reset">Сбросить</button>
+  <div class="filter-status" id="filter-status"></div>
+</div>
+
 <nav id="tabs"></nav>
 <main id="content"></main>
+<div id="modal"></div>
+
 <script src="app.js"></script>
 </body>
 </html>
