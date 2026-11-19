@@ -17,6 +17,12 @@ const state = {
 };
 
 // ==================== ВИДИМЫЕ ОШИБКИ ====================
+function logStage(stage) {
+  console.log('[stage]', stage);
+  const lu = document.getElementById('last-update');
+  if (lu) lu.textContent = 'Загрузка: ' + stage + '…';
+}
+
 function showFatal(msg, details) {
   console.error('[FATAL]', msg, details || '');
   const content = document.getElementById('content');
